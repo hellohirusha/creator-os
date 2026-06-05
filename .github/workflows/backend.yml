@@ -59,7 +59,7 @@ jobs:
         run: go test ./... -v -race -count=1
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/creator_os_test
-          JWT_SECRET: test_secret_at_least_32_chars_long
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
   deploy:
     needs: test
