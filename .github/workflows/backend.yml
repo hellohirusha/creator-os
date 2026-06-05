@@ -59,14 +59,14 @@ jobs:
         run: go test ./... -v -race -count=1
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/creator_os_test
-          JWT_SECRET: test_secret_at_least_32_chars_long
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     permissions:
       contents: read
