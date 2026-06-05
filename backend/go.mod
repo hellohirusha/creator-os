@@ -1,6 +1,6 @@
 module github.com/hellohirusha/creator-os
 
-go 1.25.2
+go 1.25.0
 
 require (
 	github.com/99designs/gqlgen v0.17.90
