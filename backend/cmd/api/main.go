@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 
+	"github.com/hellohirusha/creator-os/internal/handlers"
 	"github.com/hellohirusha/creator-os/pkg/database"
 )
 
@@ -55,7 +56,12 @@ func main() {
 		w.Write([]byte(`{"status":"ok","version":"0.1.0"}`))
 	})
 
+	authHandler := &handlers.AuthHandler{DB: db}
 	r.Route("/api", func(r chi.Router) {
+		r.Post("/signup", authHandler.Signup)
+		r.Post("/login", authHandler.Login)
+		r.Post("/refresh", authHandler.Refresh)
+		r.Post("/logout", authHandler.Logout)
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(`{"message":"CreatorOS API"}`))
 		})
