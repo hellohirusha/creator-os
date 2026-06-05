@@ -10,11 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 
+	"github.com/hellohirusha/creator-os/graph"
 	"github.com/hellohirusha/creator-os/internal/handlers"
 	"github.com/hellohirusha/creator-os/pkg/database"
 )
@@ -32,9 +35,9 @@ func main() {
 	}
 	defer db.Close()
 
-	// if err := database.RunMigrations(db); err != nil {
-	// 	log.Fatalf("Failed to run migrations: %v", err)
-	// }
+	if err := database.RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
 
 	r := chi.NewRouter()
 
@@ -56,6 +59,7 @@ func main() {
 		w.Write([]byte(`{"status":"ok","version":"0.1.0"}`))
 	})
 
+	// Auth routes
 	authHandler := &handlers.AuthHandler{DB: db}
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/signup", authHandler.Signup)
@@ -66,6 +70,18 @@ func main() {
 			w.Write([]byte(`{"message":"CreatorOS API"}`))
 		})
 	})
+
+	// GraphQL
+	graphqlHandler := handler.NewDefaultServer(
+		graph.NewExecutableSchema(graph.Config{
+			Resolvers: &graph.Resolver{DB: db},
+		}),
+	)
+
+	if os.Getenv("ENVIRONMENT") != "production" {
+		r.Handle("/playground", playground.Handler("GraphQL", "/query"))
+	}
+	r.Handle("/query", graphqlHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
