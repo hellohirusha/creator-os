@@ -55,7 +55,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"database error"}`, http.StatusInternalServerError)
 		return
 	}
-	defer tx.Rollback(r.Context())
+	defer func() { _ = tx.Rollback(r.Context()) }()
 
 	var tenantID string
 	err = tx.QueryRow(r.Context(),
@@ -123,7 +123,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	resp.User.Email = req.Email
 	resp.User.TenantID = tenantID
 	resp.User.Role = "owner"
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 type LoginRequest struct {
@@ -166,13 +166,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.DB.Exec(r.Context(), `UPDATE users SET last_login_at = NOW() WHERE id = $1`, user.ID)
+	_, _ = h.DB.Exec(r.Context(), `UPDATE users SET last_login_at = NOW() WHERE id = $1`, user.ID)
 
 	accessToken, _ := auth.GenerateAccessToken(user.ID, user.TenantID, req.Email, user.Role)
 	refreshToken, _ := auth.GenerateRefreshToken(user.ID, user.TenantID)
 
 	tokenHash := fmt.Sprintf("%x", sha256.Sum256([]byte(refreshToken)))
-	h.DB.Exec(r.Context(),
+	_, _ = h.DB.Exec(r.Context(),
 		`INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
 		user.ID, tokenHash, time.Now().Add(7*24*time.Hour),
 	)
@@ -187,7 +187,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	resp.User.Email = req.Email
 	resp.User.TenantID = user.TenantID
 	resp.User.Role = user.Role
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 type RefreshRequest struct {
@@ -240,7 +240,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"access_token": accessToken,
 		"expires_in":   900,
 	})
@@ -258,12 +258,12 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenHash := fmt.Sprintf("%x", sha256.Sum256([]byte(req.RefreshToken)))
-	h.DB.Exec(r.Context(),
+	_, _ = h.DB.Exec(r.Context(),
 		`UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1`,
 		tokenHash,
 	)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"message":"logged out"}`))
+	_, _ = w.Write([]byte(`{"message":"logged out"}`))
 }

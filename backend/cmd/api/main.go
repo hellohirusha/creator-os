@@ -42,7 +42,6 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Use(chiMiddleware.RequestID)
-	r.Use(chiMiddleware.RealIP)
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(chiMiddleware.Timeout(30 * time.Second))
@@ -56,10 +55,9 @@ func main() {
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","version":"0.1.0"}`))
+		_, _ = w.Write([]byte(`{"status":"ok","version":"0.1.0"}`))
 	})
 
-	// Auth routes
 	authHandler := &handlers.AuthHandler{DB: db}
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/signup", authHandler.Signup)
@@ -67,11 +65,10 @@ func main() {
 		r.Post("/refresh", authHandler.Refresh)
 		r.Post("/logout", authHandler.Logout)
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(`{"message":"CreatorOS API"}`))
+			_, _ = w.Write([]byte(`{"message":"CreatorOS API"}`))
 		})
 	})
 
-	// GraphQL
 	graphqlHandler := handler.NewDefaultServer(
 		graph.NewExecutableSchema(graph.Config{
 			Resolvers: &graph.Resolver{DB: db},
