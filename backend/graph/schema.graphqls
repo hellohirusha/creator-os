@@ -1,0 +1,56 @@
+# ─── SCALARS ─────────────────────────────────────────────────
+scalar Time
+scalar UUID
+
+# ─── TYPES ───────────────────────────────────────────────────
+
+type User {
+  id: UUID!
+  email: String!
+  firstName: String
+  lastName: String
+  role: String!
+  createdAt: Time!
+}
+
+type Tenant {
+  id: UUID!
+  name: String!
+  subdomain: String!
+  plan: String!
+  isActive: Boolean!
+  createdAt: Time!
+}
+
+type AuthPayload {
+  accessToken: String!
+  refreshToken: String!
+  expiresIn: Int!
+  user: User!
+}
+
+# ─── QUERIES ─────────────────────────────────────────────────
+
+type Query {
+  # Get the currently authenticated user
+  me: User!
+
+  # Get tenant by subdomain (for public storefront)
+  tenant(subdomain: String!): Tenant
+}
+
+# ─── MUTATIONS ───────────────────────────────────────────────
+
+type Mutation {
+  # Auth mutations — no auth required
+  login(email: String!, password: String!): AuthPayload!
+  signup(
+    storeName: String!
+    subdomain: String!
+    email: String!
+    password: String!
+  ): AuthPayload!
+
+  # Admin mutations — auth required
+  updateProfile(firstName: String, lastName: String): User!
+}
