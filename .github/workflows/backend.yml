@@ -61,8 +61,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Railway CLI
-  shell: bash
-  run: curl -fsSL https://railway.app/install.sh | sh
+        run: curl -fsSL https://railway.app/install.sh | sh
 
       - name: Deploy to Railway
         working-directory: backend
