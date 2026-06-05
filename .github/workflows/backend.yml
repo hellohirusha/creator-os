@@ -8,9 +8,17 @@ on:
     branches: [main]
     paths: [backend/**]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
 
     services:
       postgres:
@@ -29,9 +37,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.24.x"
           cache: true
           cache-dependency-path: backend/go.sum
 
@@ -40,7 +48,7 @@ jobs:
         run: go mod download
 
       - name: Run linter
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v6
         with:
           version: v2.4.0
           working-directory: backend
@@ -55,16 +63,21 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Railway CLI
-        run: curl -fsSL https://railway.app/install.sh | bash
+        run: npm install -g @railway/cli@3.8.0 # pin; update to latest stable as needed
 
       - name: Deploy to Railway
         working-directory: backend
-        run: railway up --detach
+        run: railway up
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
