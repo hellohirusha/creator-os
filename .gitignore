@@ -24,24 +24,9 @@ profile.cov
 go.work
 go.work.sum
 
-# Environment files
+# env file
 .env
-*.env
-!*.env.example
-
-# Go
-backend/vendor/
-backend/tmp/
-
-# Node
-node_modules/
-frontend/build/
-mobile/node_modules/
 
 # Editor/IDE
 # .idea/
 # .vscode/
-
-# OS
-.DS_Store
-Thumbs.db
