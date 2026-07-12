@@ -19,6 +19,7 @@ import (
 
 	"github.com/hellohirusha/creator-os/graph"
 	"github.com/hellohirusha/creator-os/internal/handlers"
+	appMiddleware "github.com/hellohirusha/creator-os/internal/middleware"
 	"github.com/hellohirusha/creator-os/internal/services"
 	"github.com/hellohirusha/creator-os/pkg/database"
 )
@@ -60,15 +61,24 @@ func main() {
 	})
 
 	authHandler := &handlers.AuthHandler{DB: db}
+	checkoutHandler := &handlers.CheckoutHandler{DB: db}
+
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/signup", authHandler.Signup)
 		r.Post("/login", authHandler.Login)
 		r.Post("/refresh", authHandler.Refresh)
 		r.Post("/logout", authHandler.Logout)
+		r.Group(func(r chi.Router) {
+			r.Use(appMiddleware.AuthRequired)
+			r.Post("/checkout/session", checkoutHandler.CreateCheckoutSession)
+		})
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte(`{"message":"CreatorOS API"}`))
 		})
 	})
+
+	// Webhooks - NO auth middleware (Stripe calls these directly)
+	r.Post("/webhooks/stripe", checkoutHandler.HandleStripeWebhook)
 
 	graphqlHandler := handler.NewDefaultServer(
 		graph.NewExecutableSchema(graph.Config{
@@ -82,7 +92,7 @@ func main() {
 	if os.Getenv("ENVIRONMENT") != "production" {
 		r.Handle("/playground", playground.Handler("GraphQL", "/query"))
 	}
-	r.Handle("/query", graphqlHandler)
+	r.With(appMiddleware.AuthOptional).Handle("/query", graphqlHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

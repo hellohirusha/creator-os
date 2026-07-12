@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
+	github.com/stripe/stripe-go/v76 v76.25.0
 	github.com/vektah/gqlparser/v2 v2.5.33
 )
 
