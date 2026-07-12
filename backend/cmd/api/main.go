@@ -22,6 +22,7 @@ import (
 	appMiddleware "github.com/hellohirusha/creator-os/internal/middleware"
 	"github.com/hellohirusha/creator-os/internal/services"
 	"github.com/hellohirusha/creator-os/pkg/database"
+	"github.com/hellohirusha/creator-os/pkg/storage"
 )
 
 func main() {
@@ -62,6 +63,7 @@ func main() {
 
 	authHandler := &handlers.AuthHandler{DB: db}
 	checkoutHandler := &handlers.CheckoutHandler{DB: db}
+	uploadHandler := &handlers.UploadHandler{Storage: storage.NewCloudinaryService()}
 
 	r.Route("/api", func(r chi.Router) {
 		r.Post("/signup", authHandler.Signup)
@@ -71,6 +73,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(appMiddleware.AuthRequired)
 			r.Post("/checkout/session", checkoutHandler.CreateCheckoutSession)
+			r.Post("/upload/product-image", uploadHandler.UploadProductImage)
 		})
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte(`{"message":"CreatorOS API"}`))
