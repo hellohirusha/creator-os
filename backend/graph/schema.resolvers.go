@@ -169,9 +169,81 @@ func (r *queryResolver) ProductBySlug(ctx context.Context, tenantID uuid.UUID, s
 	return modelToGraphQL(p), nil
 }
 
-// Orders is the resolver for the orders field.
+// Orders lists the authenticated tenant's orders, newest first
 func (r *queryResolver) Orders(ctx context.Context, status *string) ([]*model.Order, error) {
-	panic(fmt.Errorf("not implemented: Orders - orders"))
+	tenantID := appMiddleware.GetTenantID(ctx)
+	if tenantID == "" {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	query := `
+        SELECT id, status, total, customer_email, customer_name, created_at, paid_at
+        FROM orders
+        WHERE tenant_id = $1`
+	args := []interface{}{tenantID}
+	if status != nil && *status != "" {
+		query += " AND status = $2"
+		args = append(args, *status)
+	}
+	query += " ORDER BY created_at DESC"
+
+	rows, err := r.DB.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query orders: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []*model.Order
+	index := make(map[string]*model.Order)
+	var ids []string
+	for rows.Next() {
+		var o model.Order
+		var id string
+		if err := rows.Scan(
+			&id, &o.Status, &o.Total, &o.CustomerEmail, &o.CustomerName,
+			&o.CreatedAt, &o.PaidAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan order row: %w", err)
+		}
+		o.ID = parseUUID(id)
+		orders = append(orders, &o)
+		index[id] = &o
+		ids = append(ids, id)
+	}
+
+	if len(ids) == 0 {
+		return orders, nil
+	}
+
+	// Batch-load items for all listed orders to avoid N+1 queries
+	itemRows, err := r.DB.Query(ctx, `
+        SELECT id, order_id, product_name, variant_title, quantity,
+               unit_price, total_price, image_url
+        FROM order_items
+        WHERE order_id = ANY($1::uuid[])
+        ORDER BY created_at ASC
+    `, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query order items: %w", err)
+	}
+	defer itemRows.Close()
+
+	for itemRows.Next() {
+		var it model.OrderItem
+		var id, orderID string
+		if err := itemRows.Scan(
+			&id, &orderID, &it.ProductName, &it.VariantTitle, &it.Quantity,
+			&it.UnitPrice, &it.TotalPrice, &it.ImageURL,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan order item row: %w", err)
+		}
+		it.ID = parseUUID(id)
+		if o, ok := index[orderID]; ok {
+			o.Items = append(o.Items, &it)
+		}
+	}
+
+	return orders, nil
 }
 
 // Order is the resolver for the order field.
