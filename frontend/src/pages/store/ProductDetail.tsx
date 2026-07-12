@@ -38,8 +38,16 @@ const GET_PRODUCT = gql`
   }
 `;
 
+const GET_TENANT = gql`
+  query GetTenantBySubdomain($subdomain: String!) {
+    tenant(subdomain: $subdomain) {
+      id
+    }
+  }
+`;
+
 export function ProductDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { subdomain, slug } = useParams<{ subdomain: string; slug: string }>();
   const navigate = useNavigate();
   const { addItem } = useCart();
 
@@ -47,15 +55,23 @@ export function ProductDetailPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [added, setAdded] = useState(false);
 
-  // You'd normally get tenantId from a context set by the storefront
-  // For now, pass it via query param in development
-  const tenantId =
-    new URLSearchParams(window.location.search).get("tenantId") ?? "";
-
-  const { data, loading } = useQuery<{ productBySlug: any }>(GET_PRODUCT, {
-    variables: { tenantId, slug },
-    skip: !tenantId || !slug,
+  // Resolve the store from the /store/:subdomain/... path segment
+  const { data: tenantData, loading: tenantLoading } = useQuery<{
+    tenant?: { id: string };
+  }>(GET_TENANT, {
+    variables: { subdomain },
+    skip: !subdomain,
   });
+  const tenantId = tenantData?.tenant?.id ?? "";
+
+  const { data, loading: productLoading } = useQuery<{ productBySlug: any }>(
+    GET_PRODUCT,
+    {
+      variables: { tenantId, slug },
+      skip: !tenantId || !slug,
+    },
+  );
+  const loading = tenantLoading || productLoading;
 
   // Auto-select first in-stock variant once the product loads
   useEffect(() => {
