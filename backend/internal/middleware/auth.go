@@ -57,6 +57,26 @@ func AuthRequired(next http.Handler) http.Handler {
 	})
 }
 
+// AuthOptional injects user/tenant info into context if a valid access token
+// is present, but does not reject requests without one. Use it for endpoints
+// that serve both public and authenticated traffic (e.g. the GraphQL endpoint).
+func AuthOptional(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			if claims, err := auth.ValidateToken(parts[1]); err == nil && claims.Type == "access" {
+				ctx := context.WithValue(r.Context(), ContextKeyUserID, claims.UserID)
+				ctx = context.WithValue(ctx, ContextKeyTenantID, claims.TenantID)
+				ctx = context.WithValue(ctx, ContextKeyEmail, claims.Email)
+				ctx = context.WithValue(ctx, ContextKeyRole, claims.Role)
+				r = r.WithContext(ctx)
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // GetUserID extracts user ID from request context
 func GetUserID(ctx context.Context) string {
 	if v, ok := ctx.Value(ContextKeyUserID).(string); ok {
