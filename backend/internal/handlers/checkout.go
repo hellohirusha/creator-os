@@ -137,13 +137,15 @@ func (h *CheckoutHandler) CreateCheckoutSession(w http.ResponseWriter, r *http.R
 	}
 
 	// Update order with Stripe session ID
-	h.DB.Exec(r.Context(),
+	if _, err := h.DB.Exec(r.Context(),
 		"UPDATE orders SET stripe_session_id = $1 WHERE id = $2",
 		s.ID, orderID,
-	)
+	); err != nil {
+		fmt.Printf("ERROR: failed to store session id on order %s: %v\n", orderID, err)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"session_id":   s.ID,
 		"checkout_url": s.URL,
 		"order_id":     orderID,
@@ -162,7 +164,8 @@ func (h *CheckoutHandler) createPendingOrder(
 	if err != nil {
 		return "", err
 	}
-	defer tx.Rollback(ctx)
+	// Rollback is a no-op after a successful commit
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Set the tenant GUC so row-level security allows the inserts
 	if _, err := tx.Exec(ctx,
@@ -319,13 +322,18 @@ func (h *CheckoutHandler) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 	case "checkout.session.expired":
 		// Session expired without payment — mark order as failed
 		var s stripe.CheckoutSession
-		json.Unmarshal(event.Data.Raw, &s)
+		if err := json.Unmarshal(event.Data.Raw, &s); err != nil {
+			fmt.Printf("ERROR: failed to parse expired session: %v\n", err)
+			break
+		}
 
 		if orderID := s.Metadata["order_id"]; orderID != "" {
-			h.DB.Exec(r.Context(),
+			if _, err := h.DB.Exec(r.Context(),
 				"UPDATE orders SET status = 'failed' WHERE id = $1 AND status = 'pending'",
 				orderID,
-			)
+			); err != nil {
+				fmt.Printf("ERROR: failed to mark order %s as failed: %v\n", orderID, err)
+			}
 		}
 
 	case "payment_intent.payment_failed":
@@ -339,7 +347,7 @@ func (h *CheckoutHandler) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 
 	// Always return 200 — Stripe retries events that receive non-200
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"received":true}`))
+	_, _ = w.Write([]byte(`{"received":true}`))
 }
 
 // decrementInventory reduces stock_quantity for all items in an order
@@ -356,12 +364,17 @@ func (h *CheckoutHandler) decrementInventory(orderID string) {
 	for rows.Next() {
 		var variantID string
 		var quantity int
-		rows.Scan(&variantID, &quantity)
+		if err := rows.Scan(&variantID, &quantity); err != nil {
+			fmt.Printf("ERROR: failed to scan order item: %v\n", err)
+			continue
+		}
 
-		h.DB.Exec(ctx, `
+		if _, err := h.DB.Exec(ctx, `
             UPDATE product_variants
             SET stock_quantity = GREATEST(stock_quantity - $1, 0)
             WHERE id = $2 AND track_inventory = true
-        `, quantity, variantID)
+        `, quantity, variantID); err != nil {
+			fmt.Printf("ERROR: failed to decrement inventory for variant %s: %v\n", variantID, err)
+		}
 	}
 }

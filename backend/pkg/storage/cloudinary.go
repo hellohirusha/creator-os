@@ -68,15 +68,25 @@ func (c *CloudinaryService) UploadImage(ctx context.Context, file io.Reader, fol
 	if err != nil {
 		return nil, err
 	}
-	part.Write(buf)
+	if _, err := part.Write(buf); err != nil {
+		return nil, fmt.Errorf("failed to write file to form: %w", err)
+	}
 
 	// Add parameters
 	for k, v := range params {
-		writer.WriteField(k, v)
+		if err := writer.WriteField(k, v); err != nil {
+			return nil, fmt.Errorf("failed to write field %s: %w", k, err)
+		}
 	}
-	writer.WriteField("api_key", c.APIKey)
-	writer.WriteField("signature", signature)
-	writer.Close()
+	if err := writer.WriteField("api_key", c.APIKey); err != nil {
+		return nil, fmt.Errorf("failed to write api_key: %w", err)
+	}
+	if err := writer.WriteField("signature", signature); err != nil {
+		return nil, fmt.Errorf("failed to write signature: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to finalize form: %w", err)
+	}
 
 	// Upload to Cloudinary
 	url := fmt.Sprintf("https://api.cloudinary.com/v1_1/%s/image/upload", c.CloudName)
@@ -90,7 +100,7 @@ func (c *CloudinaryService) UploadImage(ctx context.Context, file io.Reader, fol
 	if err != nil {
 		return nil, fmt.Errorf("upload request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result UploadResult
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
