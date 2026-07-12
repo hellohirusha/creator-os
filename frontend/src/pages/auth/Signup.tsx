@@ -53,7 +53,7 @@ export function Signup() {
       localStorage.setItem("refresh_token", data.refresh_token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      navigate("/admin/dashboard");
+      navigate("/admin/products");
     } catch {
       setError("Network error — please try again");
     } finally {

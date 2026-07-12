@@ -125,7 +125,7 @@ type ComplexityRoot struct {
 		Orders        func(childComplexity int, status *string) int
 		Product       func(childComplexity int, id string) int
 		ProductBySlug func(childComplexity int, tenantID uuid.UUID, slug string) int
-		Products      func(childComplexity int, status *string) int
+		Products      func(childComplexity int, tenantID *uuid.UUID, status *string) int
 		Tenant        func(childComplexity int, subdomain string) int
 	}
 
@@ -161,7 +161,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Me(ctx context.Context) (*model.User, error)
 	Tenant(ctx context.Context, subdomain string) (*model.Tenant, error)
-	Products(ctx context.Context, status *string) ([]*model.Product, error)
+	Products(ctx context.Context, tenantID *uuid.UUID, status *string) ([]*model.Product, error)
 	Product(ctx context.Context, id string) (*model.Product, error)
 	ProductBySlug(ctx context.Context, tenantID uuid.UUID, slug string) (*model.Product, error)
 	Orders(ctx context.Context, status *string) ([]*model.Order, error)
@@ -643,7 +643,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.Products(childComplexity, args["status"].(*string)), true
+		return e.ComplexityRoot.Query.Products(childComplexity, args["tenantId"].(*uuid.UUID), args["status"].(*string)), true
 	case "Query.tenant":
 		if e.ComplexityRoot.Query.Tenant == nil {
 			break
@@ -1381,14 +1381,22 @@ func (ec *executionContext) field_Query_product_args(ctx context.Context, rawArg
 func (ec *executionContext) field_Query_products_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "status",
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tenantId",
+		func(ctx context.Context, v any) (*uuid.UUID, error) {
+			return ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["tenantId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "status",
 		func(ctx context.Context, v any) (*string, error) {
 			return ec.unmarshalOString2ᚖstring(ctx, v)
 		})
 	if err != nil {
 		return nil, err
 	}
-	args["status"] = arg0
+	args["status"] = arg1
 	return args, nil
 }
 
@@ -3117,7 +3125,7 @@ func (ec *executionContext) _Query_products(ctx context.Context, field graphql.C
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().Products(ctx, fc.Args["status"].(*string))
+			return ec.Resolvers.Query().Products(ctx, fc.Args["tenantId"].(*uuid.UUID), fc.Args["status"].(*string))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Product) graphql.Marshaler {
@@ -6639,6 +6647,24 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	_ = sel
 	_ = ctx
 	res := graphql.MarshalTime(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (*uuid.UUID, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalUUID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v *uuid.UUID) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalUUID(*v)
 	return res
 }
 
