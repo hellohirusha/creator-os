@@ -34,7 +34,7 @@ func (h *UploadHandler) UploadProductImage(w http.ResponseWriter, r *http.Reques
 		http.Error(w, `{"error":"no image file in request"}`, http.StatusBadRequest)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Upload to Cloudinary in the tenant's folder
 	folder := fmt.Sprintf("creator-os/products/%s", tenantID)
@@ -45,7 +45,7 @@ func (h *UploadHandler) UploadProductImage(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"url":    result.URL,
 		"width":  result.Width,
 		"height": result.Height,
@@ -61,5 +61,5 @@ func (h *UploadHandler) GetPresignedURL(w http.ResponseWriter, r *http.Request) 
 	params := h.Storage.GeneratePresignedURL(folder)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(params)
+	_ = json.NewEncoder(w).Encode(params)
 }

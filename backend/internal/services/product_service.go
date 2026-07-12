@@ -122,10 +122,12 @@ func (s *ProductService) GetProduct(ctx context.Context, tenantID, productID str
 
 	for imageRows.Next() {
 		var img models.ProductImage
-		imageRows.Scan(
+		if err := imageRows.Scan(
 			&img.ID, &img.ProductID, &img.URL, &img.AltText,
 			&img.Position, &img.Width, &img.Height, &img.CreatedAt,
-		)
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan image row: %w", err)
+		}
 		p.Images = append(p.Images, img)
 	}
 
@@ -147,13 +149,15 @@ func (s *ProductService) GetProduct(ctx context.Context, tenantID, productID str
 
 	for variantRows.Next() {
 		var v models.ProductVariant
-		variantRows.Scan(
+		if err := variantRows.Scan(
 			&v.ID, &v.ProductID, &v.SKU, &v.Title,
 			&v.Option1Name, &v.Option1Value, &v.Option2Name, &v.Option2Value,
 			&v.Price, &v.ComparePrice, &v.StockQuantity, &v.TrackInventory,
 			&v.AllowBackorder, &v.IsActive, &v.Position, &v.ImageURL,
 			&v.CreatedAt, &v.UpdatedAt,
-		)
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan variant row: %w", err)
+		}
 		p.Variants = append(p.Variants, v)
 	}
 
@@ -188,7 +192,8 @@ func (s *ProductService) CreateProduct(ctx context.Context, input CreateProductI
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	// Rollback is a no-op after a successful commit
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var productID string
 	err = tx.QueryRow(ctx, `
