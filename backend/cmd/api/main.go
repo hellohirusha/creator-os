@@ -19,6 +19,7 @@ import (
 
 	"github.com/hellohirusha/creator-os/graph"
 	"github.com/hellohirusha/creator-os/internal/handlers"
+	"github.com/hellohirusha/creator-os/internal/services"
 	"github.com/hellohirusha/creator-os/pkg/database"
 )
 
@@ -71,7 +72,10 @@ func main() {
 
 	graphqlHandler := handler.NewDefaultServer(
 		graph.NewExecutableSchema(graph.Config{
-			Resolvers: &graph.Resolver{DB: db},
+			Resolvers: &graph.Resolver{
+				DB:             db,
+				ProductService: &services.ProductService{DB: db},
+			},
 		}),
 	)
 

@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/hellohirusha/creator-os/graph/model"
 )
 
@@ -27,6 +28,26 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, firstName *string,
 	panic(fmt.Errorf("not implemented: UpdateProfile - updateProfile"))
 }
 
+// UpdateProduct is the resolver for the updateProduct field.
+func (r *mutationResolver) UpdateProduct(ctx context.Context, id uuid.UUID, input model.UpdateProductInput) (*model.Product, error) {
+	panic(fmt.Errorf("not implemented: UpdateProduct - updateProduct"))
+}
+
+// DeleteProduct is the resolver for the deleteProduct field.
+func (r *mutationResolver) DeleteProduct(ctx context.Context, id uuid.UUID) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeleteProduct - deleteProduct"))
+}
+
+// PublishProduct is the resolver for the publishProduct field.
+func (r *mutationResolver) PublishProduct(ctx context.Context, id uuid.UUID) (*model.Product, error) {
+	panic(fmt.Errorf("not implemented: PublishProduct - publishProduct"))
+}
+
+// AddProductImage is the resolver for the addProductImage field.
+func (r *mutationResolver) AddProductImage(ctx context.Context, productID uuid.UUID, url string, altText *string) (*model.ProductImage, error) {
+	panic(fmt.Errorf("not implemented: AddProductImage - addProductImage"))
+}
+
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	panic(fmt.Errorf("not implemented: Me - me"))
@@ -37,6 +58,16 @@ func (r *queryResolver) Tenant(ctx context.Context, subdomain string) (*model.Te
 	panic(fmt.Errorf("not implemented: Tenant - tenant"))
 }
 
+// Product is the resolver for the product field.
+func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product, error) {
+	panic(fmt.Errorf("not implemented: Product - product"))
+}
+
+// ProductBySlug is the resolver for the productBySlug field.
+func (r *queryResolver) ProductBySlug(ctx context.Context, tenantID uuid.UUID, slug string) (*model.Product, error) {
+	panic(fmt.Errorf("not implemented: ProductBySlug - productBySlug"))
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -45,18 +76,3 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: CreateTodo - createTodo"))
-}
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
-}
-*/
