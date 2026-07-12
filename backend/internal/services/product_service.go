@@ -82,6 +82,49 @@ func (s *ProductService) ListProducts(ctx context.Context, tenantID string, stat
 		products = append(products, &p)
 	}
 
+	if len(products) == 0 {
+		return products, nil
+	}
+
+	// Batch-load variants so listings can show stock state without N+1 queries
+	index := make(map[string]*models.Product, len(products))
+	ids := make([]string, 0, len(products))
+	for _, p := range products {
+		index[p.ID] = p
+		ids = append(ids, p.ID)
+	}
+
+	variantRows, err := s.DB.Query(ctx, `
+        SELECT id, product_id, sku, title,
+               option1_name, option1_value, option2_name, option2_value,
+               price, compare_price, stock_quantity, track_inventory,
+               allow_backorder, is_active, position, image_url,
+               created_at, updated_at
+        FROM product_variants
+        WHERE product_id = ANY($1::uuid[])
+        ORDER BY position ASC
+    `, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query variants: %w", err)
+	}
+	defer variantRows.Close()
+
+	for variantRows.Next() {
+		var v models.ProductVariant
+		if err := variantRows.Scan(
+			&v.ID, &v.ProductID, &v.SKU, &v.Title,
+			&v.Option1Name, &v.Option1Value, &v.Option2Name, &v.Option2Value,
+			&v.Price, &v.ComparePrice, &v.StockQuantity, &v.TrackInventory,
+			&v.AllowBackorder, &v.IsActive, &v.Position, &v.ImageURL,
+			&v.CreatedAt, &v.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan variant row: %w", err)
+		}
+		if p, ok := index[v.ProductID]; ok {
+			p.Variants = append(p.Variants, v)
+		}
+	}
+
 	return products, nil
 }
 
