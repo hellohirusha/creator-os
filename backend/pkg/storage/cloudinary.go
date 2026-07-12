@@ -3,7 +3,6 @@ package storage
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -146,9 +145,10 @@ func (c *CloudinaryService) sign(params map[string]string) string {
 		parts = append(parts, fmt.Sprintf("%s=%s", k, params[k]))
 	}
 
+	// Cloudinary expects a plain SHA-1 digest of the serialized params
+	// concatenated with the API secret (not an HMAC)
 	stringToSign := strings.Join(parts, "&") + c.APISecret
 
-	mac := hmac.New(sha1.New, []byte(c.APISecret))
-	mac.Write([]byte(stringToSign))
-	return hex.EncodeToString(mac.Sum(nil))
+	sum := sha1.Sum([]byte(stringToSign))
+	return hex.EncodeToString(sum[:])
 }
