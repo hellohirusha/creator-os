@@ -16,7 +16,7 @@
 **Live demo**
 
 - API: `https://creator-os.up.railway.app/health`
-- Web: _Vercel deployment pending_
+- Web: `https://hiru-creator-os.vercel.app`
 
 ## Architecture
 
