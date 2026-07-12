@@ -38,7 +38,9 @@ type Query {
   # Get tenant by subdomain (for public storefront)
   tenant(subdomain: String!): Tenant
 
-  products(status: String): [Product!]!
+  # tenantId enables public storefront listings (forces active-only);
+  # authenticated admins omit it to list their own tenant's products
+  products(tenantId: UUID, status: String): [Product!]!
   product(id: ID!): Product
   productBySlug(tenantId: UUID!, slug: String!): Product
 

@@ -164,6 +164,45 @@ func (s *ProductService) GetProduct(ctx context.Context, tenantID, productID str
 	return &p, nil
 }
 
+// GetProductBySlug returns a product (with images and variants) by its
+// URL slug — used by the public storefront product page
+func (s *ProductService) GetProductBySlug(ctx context.Context, tenantID, slug string) (*models.Product, error) {
+	if err := s.setTenantContext(ctx, tenantID); err != nil {
+		return nil, err
+	}
+
+	var productID string
+	err := s.DB.QueryRow(ctx,
+		"SELECT id FROM products WHERE slug = $1 AND tenant_id = $2",
+		slug, tenantID,
+	).Scan(&productID)
+	if err != nil {
+		return nil, fmt.Errorf("product not found: %w", err)
+	}
+
+	return s.GetProduct(ctx, tenantID, productID)
+}
+
+// PublishProduct sets a product's status to active so it shows on the storefront
+func (s *ProductService) PublishProduct(ctx context.Context, tenantID, productID string) (*models.Product, error) {
+	if err := s.setTenantContext(ctx, tenantID); err != nil {
+		return nil, err
+	}
+
+	tag, err := s.DB.Exec(ctx,
+		"UPDATE products SET status = 'active' WHERE id = $1 AND tenant_id = $2",
+		productID, tenantID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to publish product: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, fmt.Errorf("product not found")
+	}
+
+	return s.GetProduct(ctx, tenantID, productID)
+}
+
 // CreateProduct inserts a new product + default variant in a transaction
 type CreateProductInput struct {
 	TenantID     string

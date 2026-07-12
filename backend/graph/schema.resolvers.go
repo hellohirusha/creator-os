@@ -7,9 +7,12 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+
 	"github.com/hellohirusha/creator-os/graph/model"
 	appMiddleware "github.com/hellohirusha/creator-os/internal/middleware"
 	"github.com/hellohirusha/creator-os/internal/services"
@@ -58,9 +61,19 @@ func (r *mutationResolver) DeleteProduct(ctx context.Context, id uuid.UUID) (boo
 	panic(fmt.Errorf("not implemented: DeleteProduct - deleteProduct"))
 }
 
-// PublishProduct is the resolver for the publishProduct field.
+// PublishProduct sets a product's status to active for the authenticated tenant
 func (r *mutationResolver) PublishProduct(ctx context.Context, id uuid.UUID) (*model.Product, error) {
-	panic(fmt.Errorf("not implemented: PublishProduct - publishProduct"))
+	tenantID := appMiddleware.GetTenantID(ctx)
+	if tenantID == "" {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	p, err := r.ProductService.PublishProduct(ctx, tenantID, id.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return modelToGraphQL(p), nil
 }
 
 // AddProductImage is the resolver for the addProductImage field.
@@ -73,21 +86,50 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	panic(fmt.Errorf("not implemented: Me - me"))
 }
 
-// Tenant is the resolver for the tenant field.
+// Tenant looks up a store by its subdomain (public storefront entry point)
 func (r *queryResolver) Tenant(ctx context.Context, subdomain string) (*model.Tenant, error) {
-	panic(fmt.Errorf("not implemented: Tenant - tenant"))
+	var t model.Tenant
+	var id string
+	err := r.DB.QueryRow(ctx, `
+        SELECT id, name, subdomain, plan, is_active, created_at
+        FROM tenants
+        WHERE subdomain = $1 AND is_active = true
+    `, subdomain).Scan(&id, &t.Name, &t.Subdomain, &t.Plan, &t.IsActive, &t.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// Unknown subdomain — the schema allows a null tenant
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	t.ID = parseUUID(id)
+	return &t, nil
 }
 
-// Products lists all products for the authenticated tenant
-func (r *queryResolver) Products(ctx context.Context, status *string) ([]*model.Product, error) {
-	tenantID := appMiddleware.GetTenantID(ctx)
+// Products lists the authenticated tenant's products, or — when tenantId is
+// given (public storefront) — another tenant's active products only
+func (r *queryResolver) Products(ctx context.Context, tenantID *uuid.UUID, status *string) ([]*model.Product, error) {
+	tenant := appMiddleware.GetTenantID(ctx)
 
 	statusFilter := ""
 	if status != nil {
 		statusFilter = *status
 	}
 
-	products, err := r.ProductService.ListProducts(ctx, tenantID, statusFilter)
+	if tenantID != nil {
+		// Never expose another tenant's drafts to public callers
+		if tenantID.String() != tenant {
+			statusFilter = "active"
+		}
+		tenant = tenantID.String()
+	}
+
+	if tenant == "" {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	products, err := r.ProductService.ListProducts(ctx, tenant, statusFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +154,19 @@ func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product,
 	return modelToGraphQL(p), nil
 }
 
-// ProductBySlug is the resolver for the productBySlug field.
+// ProductBySlug fetches a product by URL slug for the public storefront
 func (r *queryResolver) ProductBySlug(ctx context.Context, tenantID uuid.UUID, slug string) (*model.Product, error) {
-	panic(fmt.Errorf("not implemented: ProductBySlug - productBySlug"))
+	p, err := r.ProductService.GetProductBySlug(ctx, tenantID.String(), slug)
+	if err != nil {
+		return nil, err
+	}
+
+	// Public callers only see active products
+	if p.Status != "active" {
+		return nil, nil
+	}
+
+	return modelToGraphQL(p), nil
 }
 
 // Orders is the resolver for the orders field.
