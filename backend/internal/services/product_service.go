@@ -178,6 +178,12 @@ func (s *ProductService) CreateProduct(ctx context.Context, input CreateProductI
 	// Generate URL-safe slug from name
 	slug := slugify(input.Name)
 
+	// tags is NOT NULL in the schema; coalesce nil to an empty array so an
+	// omitted tags field stores '{}' instead of a NULL that violates the constraint
+	if input.Tags == nil {
+		input.Tags = []string{}
+	}
+
 	tx, err := s.DB.Begin(ctx)
 	if err != nil {
 		return nil, err
