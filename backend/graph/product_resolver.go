@@ -1,55 +1,11 @@
 package graph
 
 import (
-	"context"
-
 	"github.com/google/uuid"
 
 	"github.com/hellohirusha/creator-os/graph/model"
-	appMiddleware "github.com/hellohirusha/creator-os/internal/middleware"
 	"github.com/hellohirusha/creator-os/internal/models"
-	"github.com/hellohirusha/creator-os/internal/services"
 )
-
-// Products lists all products for the authenticated tenant
-func (r *queryResolver) Products(ctx context.Context, status *string) ([]*model.Product, error) {
-	tenantID := appMiddleware.GetTenantID(ctx)
-
-	statusFilter := ""
-	if status != nil {
-		statusFilter = *status
-	}
-
-	products, err := r.ProductService.ListProducts(ctx, tenantID, statusFilter)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert models to GraphQL types
-	var result []*model.Product
-	for _, p := range products {
-		result = append(result, modelToGraphQL(p))
-	}
-	return result, nil
-}
-
-// CreateProduct creates a new product for the authenticated tenant
-func (r *mutationResolver) CreateProduct(ctx context.Context, input model.CreateProductInput) (*model.Product, error) {
-	tenantID := appMiddleware.GetTenantID(ctx)
-
-	p, err := r.ProductService.CreateProduct(ctx, services.CreateProductInput{
-		TenantID:    tenantID,
-		Name:        input.Name,
-		Description: stringValue(input.Description),
-		BasePrice:   input.BasePrice,
-		Tags:        input.Tags,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return modelToGraphQL(p), nil
-}
 
 func stringValue(s *string) string {
 	if s == nil {

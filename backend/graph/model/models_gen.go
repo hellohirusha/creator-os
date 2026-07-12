@@ -26,6 +26,27 @@ type CreateProductInput struct {
 type Mutation struct {
 }
 
+type Order struct {
+	ID            uuid.UUID    `json:"id"`
+	Status        string       `json:"status"`
+	Total         float64      `json:"total"`
+	CustomerEmail string       `json:"customerEmail"`
+	CustomerName  *string      `json:"customerName,omitempty"`
+	Items         []*OrderItem `json:"items"`
+	CreatedAt     time.Time    `json:"createdAt"`
+	PaidAt        *time.Time   `json:"paidAt,omitempty"`
+}
+
+type OrderItem struct {
+	ID           uuid.UUID `json:"id"`
+	ProductName  string    `json:"productName"`
+	VariantTitle string    `json:"variantTitle"`
+	Quantity     int32     `json:"quantity"`
+	UnitPrice    float64   `json:"unitPrice"`
+	TotalPrice   float64   `json:"totalPrice"`
+	ImageURL     *string   `json:"imageUrl,omitempty"`
+}
+
 type Product struct {
 	ID           uuid.UUID         `json:"id"`
 	TenantID     uuid.UUID         `json:"tenantId"`

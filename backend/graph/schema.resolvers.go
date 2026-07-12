@@ -11,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hellohirusha/creator-os/graph/model"
+	appMiddleware "github.com/hellohirusha/creator-os/internal/middleware"
+	"github.com/hellohirusha/creator-os/internal/services"
 )
 
 // Login is the resolver for the login field.
@@ -26,6 +28,24 @@ func (r *mutationResolver) Signup(ctx context.Context, storeName string, subdoma
 // UpdateProfile is the resolver for the updateProfile field.
 func (r *mutationResolver) UpdateProfile(ctx context.Context, firstName *string, lastName *string) (*model.User, error) {
 	panic(fmt.Errorf("not implemented: UpdateProfile - updateProfile"))
+}
+
+// CreateProduct creates a new product for the authenticated tenant
+func (r *mutationResolver) CreateProduct(ctx context.Context, input model.CreateProductInput) (*model.Product, error) {
+	tenantID := appMiddleware.GetTenantID(ctx)
+
+	p, err := r.ProductService.CreateProduct(ctx, services.CreateProductInput{
+		TenantID:    tenantID,
+		Name:        input.Name,
+		Description: stringValue(input.Description),
+		BasePrice:   input.BasePrice,
+		Tags:        input.Tags,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return modelToGraphQL(p), nil
 }
 
 // UpdateProduct is the resolver for the updateProduct field.
@@ -58,14 +78,53 @@ func (r *queryResolver) Tenant(ctx context.Context, subdomain string) (*model.Te
 	panic(fmt.Errorf("not implemented: Tenant - tenant"))
 }
 
-// Product is the resolver for the product field.
+// Products lists all products for the authenticated tenant
+func (r *queryResolver) Products(ctx context.Context, status *string) ([]*model.Product, error) {
+	tenantID := appMiddleware.GetTenantID(ctx)
+
+	statusFilter := ""
+	if status != nil {
+		statusFilter = *status
+	}
+
+	products, err := r.ProductService.ListProducts(ctx, tenantID, statusFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert models to GraphQL types
+	var result []*model.Product
+	for _, p := range products {
+		result = append(result, modelToGraphQL(p))
+	}
+	return result, nil
+}
+
+// Product fetches a single product (with images and variants) for the tenant
 func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product, error) {
-	panic(fmt.Errorf("not implemented: Product - product"))
+	tenantID := appMiddleware.GetTenantID(ctx)
+
+	p, err := r.ProductService.GetProduct(ctx, tenantID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return modelToGraphQL(p), nil
 }
 
 // ProductBySlug is the resolver for the productBySlug field.
 func (r *queryResolver) ProductBySlug(ctx context.Context, tenantID uuid.UUID, slug string) (*model.Product, error) {
 	panic(fmt.Errorf("not implemented: ProductBySlug - productBySlug"))
+}
+
+// Orders is the resolver for the orders field.
+func (r *queryResolver) Orders(ctx context.Context, status *string) ([]*model.Order, error) {
+	panic(fmt.Errorf("not implemented: Orders - orders"))
+}
+
+// Order is the resolver for the order field.
+func (r *queryResolver) Order(ctx context.Context, id uuid.UUID) (*model.Order, error) {
+	panic(fmt.Errorf("not implemented: Order - order"))
 }
 
 // Mutation returns MutationResolver implementation.
