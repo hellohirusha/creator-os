@@ -35,9 +35,9 @@ export function NewProductPage() {
     createProduct: { id: string; name: string; slug: string };
   }>(CREATE_PRODUCT, {
     refetchQueries: ["GetProducts"],
-    onCompleted: (data) => {
+    onCompleted: () => {
       toast.success("Product created!");
-      navigate(`/admin/products/${data.createProduct.id}`);
+      navigate("/admin/products");
     },
     onError: (err) => {
       toast.error(err.message);
@@ -66,6 +66,8 @@ export function NewProductPage() {
       if (data.url) {
         setUploadedImages((prev) => [...prev, data.url]);
         toast.success("Image uploaded");
+      } else {
+        toast.error(data.error || "Image upload failed");
       }
     } catch {
       toast.error("Image upload failed");

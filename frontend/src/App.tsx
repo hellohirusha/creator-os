@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Signup } from "./pages/auth/Signup";
 import { ProductsPage } from "./pages/admin/Products";
 import { NewProductPage } from "./pages/admin/NewProduct";
@@ -16,6 +16,11 @@ function App() {
       {/* Admin (store owner) */}
       <Route path="/admin/products" element={<ProductsPage />} />
       <Route path="/admin/products/new" element={<NewProductPage />} />
+      {/* No admin product-detail page yet — send stale links back to the list */}
+      <Route
+        path="/admin/products/:id"
+        element={<Navigate to="/admin/products" replace />}
+      />
       <Route path="/admin/orders" element={<OrdersPage />} />
 
       {/* Storefront (shoppers) */}
