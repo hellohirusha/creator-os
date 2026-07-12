@@ -37,6 +37,10 @@ type Query {
 
   # Get tenant by subdomain (for public storefront)
   tenant(subdomain: String!): Tenant
+
+  products(status: String): [Product!]!
+  product(id: ID!): Product
+  productBySlug(tenantId: UUID!, slug: String!): Product
 }
 
 # ─── MUTATIONS ───────────────────────────────────────────────
@@ -53,4 +57,75 @@ type Mutation {
 
   # Admin mutations — auth required
   updateProfile(firstName: String, lastName: String): User!
+
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(id: UUID!, input: UpdateProductInput!): Product!
+  deleteProduct(id: UUID!): Boolean!
+  publishProduct(id: UUID!): Product!
+  addProductImage(
+    productId: UUID!
+    url: String!
+    altText: String
+  ): ProductImage!
+}
+
+# ─── PRODUCT TYPES ───────────────────────────────────────────
+
+type Product {
+  id: UUID!
+  tenantId: UUID!
+  name: String!
+  slug: String!
+  description: String
+  shortDesc: String
+  basePrice: Float!
+  comparePrice: Float
+  status: String!
+  isFeatured: Boolean!
+  tags: [String!]!
+  images: [ProductImage!]!
+  variants: [ProductVariant!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type ProductImage {
+  id: UUID!
+  url: String!
+  altText: String
+  position: Int!
+}
+
+type ProductVariant {
+  id: UUID!
+  sku: String!
+  title: String!
+  option1Name: String
+  option1Value: String
+  option2Name: String
+  option2Value: String
+  price: Float!
+  comparePrice: Float
+  stockQuantity: Int!
+  isInStock: Boolean!
+  isActive: Boolean!
+  imageUrl: String
+}
+
+input CreateProductInput {
+  name: String!
+  description: String
+  basePrice: Float!
+  comparePrice: Float
+  tags: [String!]
+}
+
+input UpdateProductInput {
+  name: String
+  description: String
+  basePrice: Float
+  comparePrice: Float
+  status: String
+  isFeatured: Boolean
+  tags: [String!]
 }

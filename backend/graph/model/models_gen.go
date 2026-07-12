@@ -15,7 +15,56 @@ type AuthPayload struct {
 	User         *User  `json:"user"`
 }
 
+type CreateProductInput struct {
+	Name         string   `json:"name"`
+	Description  *string  `json:"description,omitempty"`
+	BasePrice    float64  `json:"basePrice"`
+	ComparePrice *float64 `json:"comparePrice,omitempty"`
+	Tags         []string `json:"tags,omitempty"`
+}
+
 type Mutation struct {
+}
+
+type Product struct {
+	ID           uuid.UUID         `json:"id"`
+	TenantID     uuid.UUID         `json:"tenantId"`
+	Name         string            `json:"name"`
+	Slug         string            `json:"slug"`
+	Description  *string           `json:"description,omitempty"`
+	ShortDesc    *string           `json:"shortDesc,omitempty"`
+	BasePrice    float64           `json:"basePrice"`
+	ComparePrice *float64          `json:"comparePrice,omitempty"`
+	Status       string            `json:"status"`
+	IsFeatured   bool              `json:"isFeatured"`
+	Tags         []string          `json:"tags"`
+	Images       []*ProductImage   `json:"images"`
+	Variants     []*ProductVariant `json:"variants"`
+	CreatedAt    time.Time         `json:"createdAt"`
+	UpdatedAt    time.Time         `json:"updatedAt"`
+}
+
+type ProductImage struct {
+	ID       uuid.UUID `json:"id"`
+	URL      string    `json:"url"`
+	AltText  *string   `json:"altText,omitempty"`
+	Position int32     `json:"position"`
+}
+
+type ProductVariant struct {
+	ID            uuid.UUID `json:"id"`
+	Sku           string    `json:"sku"`
+	Title         string    `json:"title"`
+	Option1Name   *string   `json:"option1Name,omitempty"`
+	Option1Value  *string   `json:"option1Value,omitempty"`
+	Option2Name   *string   `json:"option2Name,omitempty"`
+	Option2Value  *string   `json:"option2Value,omitempty"`
+	Price         float64   `json:"price"`
+	ComparePrice  *float64  `json:"comparePrice,omitempty"`
+	StockQuantity int32     `json:"stockQuantity"`
+	IsInStock     bool      `json:"isInStock"`
+	IsActive      bool      `json:"isActive"`
+	ImageURL      *string   `json:"imageUrl,omitempty"`
 }
 
 type Query struct {
@@ -28,6 +77,16 @@ type Tenant struct {
 	Plan      string    `json:"plan"`
 	IsActive  bool      `json:"isActive"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type UpdateProductInput struct {
+	Name         *string  `json:"name,omitempty"`
+	Description  *string  `json:"description,omitempty"`
+	BasePrice    *float64 `json:"basePrice,omitempty"`
+	ComparePrice *float64 `json:"comparePrice,omitempty"`
+	Status       *string  `json:"status,omitempty"`
+	IsFeatured   *bool    `json:"isFeatured,omitempty"`
+	Tags         []string `json:"tags,omitempty"`
 }
 
 type User struct {
