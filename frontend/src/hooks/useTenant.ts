@@ -13,20 +13,19 @@ const GET_TENANT = gql`
 `;
 
 export function useTenant() {
-  // In production: parse subdomain from window.location.hostname
-  // In development: read from query param or localStorage
-  const hostname = window.location.hostname; // e.g. "teststore.creatorOS.app"
-  const parts = hostname.split(".");
+  // The ?store= param takes precedence — hosted domains (e.g. *.vercel.app)
+  // would otherwise be misread as store subdomains. Hostname parsing kicks in
+  // for real per-store subdomains; localStorage is the dev fallback.
+  let subdomain =
+    new URLSearchParams(window.location.search).get("store") || "";
 
-  let subdomain = "";
-  if (parts.length >= 3) {
-    subdomain = parts[0]; // "teststore"
-  } else {
-    // Development fallback — use URL param
-    subdomain =
-      new URLSearchParams(window.location.search).get("store") ||
-      localStorage.getItem("demo_subdomain") ||
-      "";
+  if (!subdomain) {
+    const parts = window.location.hostname.split("."); // e.g. "teststore.creatorOS.app"
+    if (parts.length >= 3) {
+      subdomain = parts[0]; // "teststore"
+    } else {
+      subdomain = localStorage.getItem("demo_subdomain") || "";
+    }
   }
 
   const { data, loading, error } = useQuery<{

@@ -1,5 +1,5 @@
 import { gql } from "@apollo/client";
-import { useQuery } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { Link } from "react-router-dom";
 import { Plus, Package, AlertCircle } from "lucide-react";
 
@@ -27,8 +27,20 @@ const GET_PRODUCTS = gql`
   }
 `;
 
+const PUBLISH_PRODUCT = gql`
+  mutation PublishProduct($id: UUID!) {
+    publishProduct(id: $id) {
+      id
+      status
+    }
+  }
+`;
+
 export function ProductsPage() {
   const { data, loading, error } = useQuery<{ products: any[] }>(GET_PRODUCTS);
+  const [publishProduct, { loading: publishing }] = useMutation<{
+    publishProduct: { id: string; status: string };
+  }>(PUBLISH_PRODUCT, { refetchQueries: ["GetProducts"] });
 
   if (loading) {
     return (
@@ -160,6 +172,20 @@ export function ProductsPage() {
                     {inStock ? `${totalStock} in stock` : "Out of stock"}
                   </span>
                 </div>
+                {product.status === "draft" && (
+                  <button
+                    type="button"
+                    disabled={publishing}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      publishProduct({ variables: { id: product.id } });
+                    }}
+                    className="mt-2 w-full py-1.5 text-xs font-medium bg-gray-900 text-white
+                               rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  >
+                    {publishing ? "Publishing..." : "Publish to store"}
+                  </button>
+                )}
               </div>
             </Link>
           );
