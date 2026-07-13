@@ -22,6 +22,7 @@ import (
 	appMiddleware "github.com/hellohirusha/creator-os/internal/middleware"
 	"github.com/hellohirusha/creator-os/internal/services"
 	"github.com/hellohirusha/creator-os/pkg/database"
+	"github.com/hellohirusha/creator-os/pkg/queue"
 	"github.com/hellohirusha/creator-os/pkg/storage"
 )
 
@@ -61,8 +62,13 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ok","version":"0.1.0"}`))
 	})
 
-	authHandler := &handlers.AuthHandler{DB: db}
-	checkoutHandler := &handlers.CheckoutHandler{DB: db}
+	queueClient, err := queue.NewClient()
+	if err != nil {
+		log.Printf("WARNING: Redis unavailable — order emails disabled: %v", err)
+	}
+	emailService := &services.EmailService{DB: db, Queue: queueClient}
+	authHandler := &handlers.AuthHandler{DB: db, Email: emailService}
+	checkoutHandler := &handlers.CheckoutHandler{DB: db, Email: emailService}
 	uploadHandler := &handlers.UploadHandler{Storage: storage.NewCloudinaryService()}
 
 	r.Route("/api", func(r chi.Router) {

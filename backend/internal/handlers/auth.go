@@ -12,10 +12,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/hellohirusha/creator-os/internal/auth"
+	"github.com/hellohirusha/creator-os/internal/services"
 )
 
 type AuthHandler struct {
-	DB *pgxpool.Pool
+	DB    *pgxpool.Pool
+	Email *services.EmailService
 }
 
 type SignupRequest struct {
@@ -89,6 +91,10 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 	if err := tx.Commit(r.Context()); err != nil {
 		http.Error(w, `{"error":"transaction failed"}`, http.StatusInternalServerError)
 		return
+	}
+
+	if err := h.Email.SeedSystemTemplates(r.Context(), tenantID); err != nil {
+		fmt.Println("Warning: failed to seed email templates:", err)
 	}
 
 	accessToken, err := auth.GenerateAccessToken(userID, tenantID, req.Email, "owner")
