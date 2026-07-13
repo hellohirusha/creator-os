@@ -73,6 +73,11 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # Process env outranks every .env file (including the
+          # .env.production.local that vercel pull writes), so the public
+          # API endpoints are guaranteed into the bundle
+          REACT_APP_API_URL: https://creator-os.up.railway.app
+          REACT_APP_GRAPHQL_URL: https://creator-os.up.railway.app/query
 
       - name: Deploy to Vercel
         working-directory: frontend
