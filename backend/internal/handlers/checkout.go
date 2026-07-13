@@ -14,10 +14,12 @@ import (
 	"github.com/stripe/stripe-go/v76/webhook"
 
 	appMiddleware "github.com/hellohirusha/creator-os/internal/middleware"
+	"github.com/hellohirusha/creator-os/internal/services"
 )
 
 type CheckoutHandler struct {
-	DB *pgxpool.Pool
+	DB    *pgxpool.Pool
+	Email *services.EmailService
 }
 
 // CartItem represents a single item passed from the frontend
@@ -314,8 +316,16 @@ func (h *CheckoutHandler) HandleStripeWebhook(w http.ResponseWriter, r *http.Req
 		// Decrease inventory for each ordered variant
 		go h.decrementInventory(orderID)
 
-		// Trigger order confirmation email (via queue — Day 4)
-		// queue.Publish("email.order_confirmation", map[string]string{"order_id": orderID})
+		if h.Email != nil && h.Email.Queue != nil {
+			tenantID := s.Metadata["tenant_id"]
+			go func() {
+				if err := h.Email.SendOrderConfirmation(context.Background(), tenantID, orderID); err != nil {
+					fmt.Printf("ERROR: order confirmation for %s failed: %v\n", orderID, err)
+				}
+			}()
+		} else {
+			fmt.Printf("WARNING: queue unavailable, skipping confirmation email for order %s\n", orderID)
+		}
 
 		fmt.Printf("Order %s paid via Stripe session %s\n", orderID, s.ID)
 

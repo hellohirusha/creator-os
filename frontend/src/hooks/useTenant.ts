@@ -26,6 +26,9 @@ export function useTenant() {
     } else {
       subdomain = localStorage.getItem("demo_subdomain") || "";
     }
+  } else {
+    // Remember the store so /store, /cart and /order/success work without ?store=
+    localStorage.setItem("demo_subdomain", subdomain);
   }
 
   const { data, loading, error } = useQuery<{

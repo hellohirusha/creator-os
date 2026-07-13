@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { Trash2, Minus, Plus, ShoppingBag, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Trash2, Minus, Plus, ShoppingBag, Loader2 } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useCart } from "../../lib/cart";
@@ -79,6 +79,14 @@ export function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
+        <Link
+          to="/store"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500
+                     hover:text-gray-900 transition-colors mb-4"
+        >
+          <ArrowLeft size={16} />
+          Continue shopping
+        </Link>
         <h1 className="text-2xl font-bold text-gray-900 mb-6">
           Cart ({totalItems()} {totalItems() === 1 ? "item" : "items"})
         </h1>
