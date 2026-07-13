@@ -76,9 +76,35 @@ func (r *mutationResolver) PublishProduct(ctx context.Context, id uuid.UUID) (*m
 	return modelToGraphQL(p), nil
 }
 
-// AddProductImage is the resolver for the addProductImage field.
+// AddProductImage attaches an uploaded image URL to one of the tenant's products
 func (r *mutationResolver) AddProductImage(ctx context.Context, productID uuid.UUID, url string, altText *string) (*model.ProductImage, error) {
-	panic(fmt.Errorf("not implemented: AddProductImage - addProductImage"))
+	tenantID := appMiddleware.GetTenantID(ctx)
+	if tenantID == "" {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	// The join against products enforces tenant ownership; position is
+	// appended so the first image added becomes the primary (position 0)
+	var id string
+	var position int32
+	err := r.DB.QueryRow(ctx, `
+        INSERT INTO product_images (product_id, url, alt_text, position)
+        SELECT p.id, $2, $3,
+               COALESCE((SELECT MAX(position) + 1 FROM product_images WHERE product_id = p.id), 0)
+        FROM products p
+        WHERE p.id = $1 AND p.tenant_id = $4
+        RETURNING id, position
+    `, productID.String(), url, altText, tenantID).Scan(&id, &position)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add product image: %w", err)
+	}
+
+	return &model.ProductImage{
+		ID:       parseUUID(id),
+		URL:      url,
+		AltText:  altText,
+		Position: position,
+	}, nil
 }
 
 // Me is the resolver for the me field.
