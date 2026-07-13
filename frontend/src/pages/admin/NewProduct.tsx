@@ -16,6 +16,16 @@ const CREATE_PRODUCT = gql`
   }
 `;
 
+const ADD_PRODUCT_IMAGE = gql`
+  mutation AddProductImage($productId: UUID!, $url: String!) {
+    addProductImage(productId: $productId, url: $url) {
+      id
+      url
+      position
+    }
+  }
+`;
+
 export function NewProductPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,11 +41,25 @@ export function NewProductPage() {
     comparePrice: "",
   });
 
+  const [addProductImage] = useMutation<{
+    addProductImage: { id: string; url: string; position: number };
+  }>(ADD_PRODUCT_IMAGE);
+
   const [createProduct, { loading }] = useMutation<{
     createProduct: { id: string; name: string; slug: string };
   }>(CREATE_PRODUCT, {
     refetchQueries: ["GetProducts"],
-    onCompleted: () => {
+    onCompleted: async (data) => {
+      // Persist uploaded images in order so the first stays primary
+      for (const url of uploadedImages) {
+        try {
+          await addProductImage({
+            variables: { productId: data.createProduct.id, url },
+          });
+        } catch {
+          toast.error("Failed to attach an image");
+        }
+      }
       toast.success("Product created!");
       navigate("/admin/products");
     },
