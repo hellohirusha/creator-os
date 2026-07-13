@@ -3,6 +3,7 @@ import { useQuery } from "@apollo/client/react";
 import { Link } from "react-router-dom";
 import { ShoppingCart, Search } from "lucide-react";
 import { useTenant } from "../../hooks/useTenant";
+import { useCart } from "../../lib/cart";
 
 const GET_STORE_PRODUCTS = gql`
   query GetStoreProducts($tenantId: UUID!) {
@@ -28,6 +29,7 @@ const GET_STORE_PRODUCTS = gql`
 
 export function StorefrontPage() {
   const { tenant, subdomain, loading: tenantLoading } = useTenant();
+  const { totalItems } = useCart();
 
   const { data, loading: productsLoading } = useQuery<{ products: any[] }>(
     GET_STORE_PRODUCTS,
@@ -71,13 +73,14 @@ export function StorefrontPage() {
             <button className="p-2 text-gray-500 hover:text-gray-900 transition-colors">
               <Search size={20} />
             </button>
-            <button
+            <Link
+              to="/cart"
               className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white
                                rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
             >
               <ShoppingCart size={16} />
-              <span>Cart (0)</span>
-            </button>
+              <span>Cart ({totalItems()})</span>
+            </Link>
           </div>
         </div>
       </header>

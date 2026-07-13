@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
 import { ShoppingCart, Check, ChevronLeft } from "lucide-react";
@@ -49,7 +49,7 @@ const GET_TENANT = gql`
 export function ProductDetailPage() {
   const { subdomain, slug } = useParams<{ subdomain: string; slug: string }>();
   const navigate = useNavigate();
-  const { addItem } = useCart();
+  const { addItem, totalItems } = useCart();
 
   const [selectedVariantId, setSelectedVariantId] = useState<string>("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -138,14 +138,24 @@ export function ProductDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Back button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6"
-      >
-        <ChevronLeft size={16} />
-        Back
-      </button>
+      {/* Back button + cart */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
+        >
+          <ChevronLeft size={16} />
+          Back
+        </button>
+        <Link
+          to="/cart"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white
+                     rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+        >
+          <ShoppingCart size={16} />
+          <span>Cart ({totalItems()})</span>
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         {/* Images */}

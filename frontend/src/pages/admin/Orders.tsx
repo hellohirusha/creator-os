@@ -1,6 +1,7 @@
 import { gql } from "@apollo/client";
 import { useQuery } from "@apollo/client/react";
 import { Package, Clock, CheckCircle, Truck } from "lucide-react";
+import { AdminNav } from "../../components/AdminNav";
 
 const GET_ORDERS = gql`
   query GetOrders {
@@ -68,7 +69,9 @@ export function OrdersPage() {
     .reduce((sum: number, o: any) => sum + o.total, 0);
 
   return (
-    <div className="p-6">
+    <>
+      <AdminNav />
+      <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
@@ -161,6 +164,7 @@ export function OrdersPage() {
           </table>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

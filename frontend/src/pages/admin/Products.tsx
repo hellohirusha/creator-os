@@ -2,6 +2,7 @@ import { gql } from "@apollo/client";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { Link } from "react-router-dom";
 import { Plus, Package, AlertCircle } from "lucide-react";
+import { AdminNav } from "../../components/AdminNav";
 
 const GET_PRODUCTS = gql`
   query GetProducts {
@@ -44,32 +45,40 @@ export function ProductsPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="h-48 bg-gray-100 rounded-xl animate-pulse"
-            />
-          ))}
+      <>
+        <AdminNav />
+        <div className="p-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="h-48 bg-gray-100 rounded-xl animate-pulse"
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 text-center">
-        <AlertCircle className="mx-auto h-12 w-12 text-red-400 mb-3" />
-        <p className="text-gray-600">Failed to load products</p>
-      </div>
+      <>
+        <AdminNav />
+        <div className="p-6 text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-red-400 mb-3" />
+          <p className="text-gray-600">Failed to load products</p>
+        </div>
+      </>
     );
   }
 
   const products = data?.products ?? [];
 
   return (
-    <div className="p-6">
+    <>
+      <AdminNav />
+      <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -191,6 +200,7 @@ export function ProductsPage() {
           );
         })}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

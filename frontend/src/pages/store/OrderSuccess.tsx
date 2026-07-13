@@ -32,11 +32,16 @@ export function OrderSuccessPage() {
           </p>
         )}
         <Link
-          to="/"
+          to="/store"
           className="px-6 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800"
         >
           Continue shopping
         </Link>
+        <p className="mt-6">
+          <Link to="/" className="text-sm text-gray-400 hover:text-gray-600">
+            CreatorOS home
+          </Link>
+        </p>
       </div>
     </div>
   );
